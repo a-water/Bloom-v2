@@ -3,8 +3,8 @@ import processing.opengl.*;
 import blobDetection.*;
 import java.awt.Polygon;
 
-
 SimpleOpenNI context;
+
 color[] userClr = new color[] { 
 	color(255,0,0),
 	color(0,255,0),
@@ -20,10 +20,14 @@ ArrayList <SeedParticle> seedParticles;
 
 // Experimental
 float globalX, globalY, reScale;
-int kinectWidth = 640;
-int kinectHeight = 480;
+
+int kinectWidth;
+int kinectHeight;
+
 PImage cam, blobs;
+
 int NUM_FLOW_PARTICLES = 2200;
+
 String[] palettes = {
 	"-1117720,-13683658,-8410437,-9998215,-1849945,-5517090,-4250587,-14178341,-5804972,-3498634",
 	"-67879,-9633503,-8858441,-144382,-4996094,-16604779,-588031",
@@ -36,8 +40,11 @@ BlobDetection blobDetection;
 
 
 void setup() {
-	size(640, 480);
-	background(0, 0, 0);
+	size(displayWidth, displayHeight);
+	background(0);
+
+	kinectWidth = width;
+	kinectHeight = height;
 	//  strokeWeight(3);
 	//  smooth();  
 
@@ -55,7 +62,8 @@ void setup() {
 		return;  
 	}
 
-	// enable depthMap generation context.enableDepth();
+	// enable depthMap generation 
+	// context.enableDepth();
 
 	// enable skeleton generation for all joints
 	context.enableUser();
@@ -71,7 +79,7 @@ void setup() {
 void draw() {
 	// DEBUG
 	frame.setTitle(str((int)frameRate));
-
+ 
 	background(0);
 
 	// Update seed particles and check for collisions 
@@ -93,10 +101,10 @@ void draw() {
 
 	int[] userList = context.getUsers();
 	cam = createImage(width, height, RGB);
-	int[]depthValues = context.depthMap();
-	int[]userMap = null;
+	int[] depthValues = context.depthMap();
+	int[] userMap = null;
 
-	for(int i=0;i<userList.length;i++) {
+	for(int i=0; i<userList.length; i++) {
 		if(context.isTrackingSkeleton(userList[i])) {
 			drawSkeleton(userList[i]);
 
@@ -111,18 +119,18 @@ void draw() {
 					}
 				}
 			}
-			// cam.updatePixels();      
+			cam.updatePixels();      
 			// copy the image into the smaller blob image
-			// blobs.copy(cam, 0, 0, cam.width, cam.height, 0, 0, blobs.width, blobs.height);
+			blobs.copy(cam, 0, 0, cam.width, cam.height, 0, 0, blobs.width, blobs.height);
 			// blur the blob image
-			// blobs.filter(BLUR);
+			blobs.filter(BLUR);
 			// detect the blobs
-			// blobDetection.computeBlobs(blobs.pixels);
+			blobDetection.computeBlobs(blobs.pixels);
 			// clear the polygon (original functionality)
-			// poly.reset();
+			poly.reset();
 			// create the polygon from the blobs (custom functionality, see class)
-			// poly.createPolygon();
-			// drawFlowField();
+			poly.createPolygon();
+			drawFlowField();
 		}
 	}
 
@@ -178,32 +186,29 @@ void drawSkeleton(int userId) {
 
 }
 
-void onNewUser(SimpleOpenNI curContext, int userId){
+void onNewUser(SimpleOpenNI curContext, int userId) {
 	println("onNewUser - userId: " + userId);
 	println("\tstart tracking skeleton");
 
 	curContext.startTrackingSkeleton(userId);
 }
 
-void onLostUser(SimpleOpenNI curContext, int userId)
-{
+void onLostUser(SimpleOpenNI curContext, int userId) {
 	println("onLostUser - userId: " + userId);
 }
 
-void setupFlowField()
-{
+void setupFlowField() {
 	strokeWeight(1);
 
-  // initialize all particles in the flow
-  for(int i=0; i< flowParticles.length; i ++){
-  	flowParticles[i] = new FlowParticle(i/10000.0);
-  }
-  
-  setRandomColors(1);
+	// initialize all particles in the flow
+	for(int i=0; i< flowParticles.length; i ++) {
+		flowParticles[i] = new FlowParticle(i/10000.0);
+	}
+
+	setRandomColors(1);
 }
 
-void drawFlowField()
-{
+void drawFlowField() {
 	translate(0, (height-kinectHeight*reScale)/2); 
 	scale(reScale);
 
@@ -213,7 +218,6 @@ void drawFlowField()
 	for (FlowParticle p : flowParticles) {
 		p.updateAndDisplay();
 	}
-
 }
 
 void setRandomColors(int nthFrame) {
@@ -223,12 +227,12 @@ void setRandomColors(int nthFrame) {
 		
 		// turn strings into colors
 		color[] colorPalette = new color[paletteStrings.length];
-		for (int i=0; i < paletteStrings.length; i ++){
+		for (int i=0; i < paletteStrings.length; i ++) {
 			colorPalette[i] = int(paletteStrings[i]);
 		}
 
 		// set all particle colors randomly to color from palette (excluding first aka background color)
-		for (int i=0; i < NUM_FLOW_PARTICLES; i ++){
+		for (int i=0; i < NUM_FLOW_PARTICLES; i ++) {
 			flowParticles[i].col = colorPalette[int(random(1, colorPalette.length))];
 		}
 	}
