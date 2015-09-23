@@ -29,7 +29,7 @@ class SeedParticle {
 		}
 
 		// Check X values for the seed
-		if(vector.x > width-SEED_RADIUS){
+		if(vector.x > width-SEED_RADIUS) {
 			vector.x = width-SEED_RADIUS;
 			speedX = speedX * -1;
 		}
