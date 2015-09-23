@@ -21,12 +21,12 @@ ArrayList <SeedParticle> seedParticles;
 // Experimental
 float globalX, globalY, reScale;
 
-int kinectWidth;
-int kinectHeight;
+int kinectWidth = 640;
+int kinectHeight = 480;
 
 PImage cam, blobs;
 
-int NUM_FLOW_PARTICLES = 2200;
+int NUM_FLOW_PARTICLES = 10;
 
 String[] palettes = {
 	"-1117720,-13683658,-8410437,-9998215,-1849945,-5517090,-4250587,-14178341,-5804972,-3498634",
@@ -40,11 +40,9 @@ BlobDetection blobDetection;
 
 
 void setup() {
-	size(displayWidth, displayHeight);
+	size(kinectWidth, kinectHeight);
 	background(0);
 
-	kinectWidth = width;
-	kinectHeight = height;
 	//  strokeWeight(3);
 	//  smooth();  
 
@@ -63,7 +61,7 @@ void setup() {
 	}
 
 	// enable depthMap generation 
-	// context.enableDepth();
+	context.enableDepth();
 
 	// enable skeleton generation for all joints
 	context.enableUser();
