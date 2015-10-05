@@ -2,14 +2,27 @@ class SeedParticle {
 
 	private int speedX;
 	private int speedY;
+	private float rotation;
 	public PVector vector;
-	private final int SEED_RADIUS = 5;
+	PShape seedSVG;
+
+	private final int SEED_RADIUS = 8;
+	private final int SEED_SVG_WIDTH = 75;
+	private final int SEED_SVG_HEIGHT = 45;
 
 	SeedParticle() {
 
 		vector = new PVector(random(width), random(height));
-		speedX = (int)random(1, 5);
-		speedY = (int)random(1, 5);
+		speedX = (int)random(1, 2);
+		speedY = (int)random(1, 2);
+		rotation = random(0, 360);
+
+		// Load svg and rotate it
+		seedSVG = loadShape("seed_01.svg");
+		pushMatrix();
+		translate(vector.x, vector.y);
+		seedSVG.rotate(radians(rotation));
+		popMatrix();
 
 	}
 
@@ -41,7 +54,7 @@ class SeedParticle {
 	}
 
 	public void draw() {
-		ellipse(vector.x, vector.y, SEED_RADIUS, SEED_RADIUS);
+		shape(seedSVG, vector.x, vector.y, SEED_SVG_WIDTH/2.5, SEED_SVG_HEIGHT/2.5);
 	} 
 
 	public void checkForCollision(SeedParticle seed) {
@@ -49,7 +62,11 @@ class SeedParticle {
 		if(dist(seed.vector.x, seed.vector.y, vector.x, vector.y) < SEED_RADIUS * 2) {
 			speedX *= -1;
 			speedY *= -1;
-			println("COLLISION DETECTED!");  
+			// println("COLLISION DETECTED!");  
 		}
+	}
+
+	public int getSeedRadius() {
+		return SEED_RADIUS;
 	}
 }
