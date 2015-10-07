@@ -2,211 +2,162 @@ import SimpleOpenNI.*;
 import processing.opengl.*;
 import java.util.Iterator;
 
+// kinect 
 SimpleOpenNI context;
+float zoomF = 0.25f;
+float rotX = radians(180); 
+float rotY = radians(0);
+boolean autoCalib = true;
+PVector com = new PVector();  
 
-color[] userClr = new color[] { 
-	color(255,0,0),
-	color(0,255,0),
-	color(0,0,255),
-	color(255,255,0),
-	color(255,0,255),
-	color(0,255,255)
-};
 
-PVector com = new PVector();                                   
-PVector com2d = new PVector();  
+// seeds
 ArrayList <SeedParticle> seedParticles;
-
-// Experimental
-float globalX, globalY, reScale;
-
-int kinectWidth = 640;
-int kinectHeight = 480;
-
-PImage cam, blobs;
-
-int NUM_FLOW_PARTICLES = 2200;
 int NUM_INITIAL_SEEDS = 30;
 
-String[] palettes = {
-	"-1117720,-13683658,-8410437,-9998215,-1849945,-5517090,-4250587,-14178341,-5804972,-3498634",
-	"-67879,-9633503,-8858441,-144382,-4996094,-16604779,-588031",
-	"-16711663,-13888933,-9029017,-5213092,-1787063,-11375744,-2167516,-15713402,-5389468,-2064585"
-};
+// environment 
+color darkPurpleCol = color(20, 20, 29);
+color magentaCol = color(231, 68, 152);
+color cyanCol = color(95, 253, 255);
+
+// background agents
+int agentCount = 1000;
+int currentCount = 1;
+
+Agent[] agents = new Agent[10000];
+
+float noiseScale = 100;
+float noiseStrength = 10.0;
+float noiseZRange = 0.4;
+float overlayAlpha = 20;
+float agentsAlpha = 120;
+float strokeWidth = 0.5;
+
 
 void setup() {
-	size(displayWidth/2, displayHeight/2);
+	size(displayWidth/2, displayHeight/2, P3D);
+	smooth();
 
-	//  strokeWeight(3);
-	//  smooth();  
-
-	// Init seed particles
-	seedParticles = new ArrayList<SeedParticle>();
-	for(int i=0; i<NUM_INITIAL_SEEDS; i++) {
-		seedParticles.add(new SeedParticle());
-	}
-
-	// Init Kinect things
+	// init kinect
 	context = new SimpleOpenNI(this);
 	if(context.isInit() == false) {
-		println("Can't init SimpleOpenNI, maybe the camera is not connected?");
+		println("Can't init SimpleOpenNI");
 		exit();
 		return;  
 	}
 
-	// enable depthMap generation 
 	context.enableDepth();
+	context.setMirror(true);
+	context.enableUser(); // enable skeleton generation for all joints
 
-	// enable skeleton generation for all joints
-	context.enableUser();
+	// init agents
+	for(int i = 0; i < agents.length; i++) {
+		agents[i] = new Agent();
+	}
 
-	// mirror the kinect to be more naturl
-	// context.setMirror(true);
+	// init seed particles
+	// seedParticles = new ArrayList<SeedParticle>();
+	// for(int i=0; i<NUM_INITIAL_SEEDS; i++) {
+	// 	seedParticles.add(new SeedParticle());
+	// }
+
+	perspective(radians(45), float(width)/float(height), 10,1500);
 }
 
 void draw() {
-	// DEBUG
+	fill(darkPurpleCol, 190);
+	noStroke();
+	rect(0, 0, width, height);
+
+	// debug
 	frame.setTitle(str((int)frameRate));
- 
-	background(27, 20, 49);
-
-	// Update seed particles and check for collisions 
-	for(int i=0; i<seedParticles.size(); i++) {
-		seedParticles.get(i).update();
-		for(int x=0; x<seedParticles.size(); x++) {
-			if(i != x) {
-				seedParticles.get(i).checkForCollision(seedParticles.get(x)); 
-			}
-		}
-		seedParticles.get(i).draw();
-	}
-
-	// Update Kinect
-	context.update(); 
-
-	// Draw to an image what the camera data is seeing
+	//  context.drawCamFrustum();
 	// image(context.userImage(),0,0);
 
+	// draw agents
+	stroke(cyanCol, agentsAlpha);
+	for(int i = 0; i < agentCount; i++) {
+		agents[i].updateAgent();
+	}
+
+	// update seeds, check for collisions
+	// for(int i=0; i<seedParticles.size(); i++) {
+	// 	seedParticles.get(i).update();
+	// 	for(int x=0; x<seedParticles.size(); x++) {
+	// 		if(i != x) {
+	// 			seedParticles.get(i).checkForCollision(seedParticles.get(x)); 
+	// 		}
+	// 	}
+	// 	seedParticles.get(i).draw();
+	// }
+
+	// update kinect
+	context.update();
+
+	// get list of users, draw skeletons
+	// int[] userList = context.getUsers();
+	// for(int i=0; i<userList.length; i++) {
+	// 	if(context.isTrackingSkeleton(userList[i])) {
+	// 		drawSkeleton(userList[i]);
+	// 	}
+	// }
+
+	// set the scene pos
+	translate(width/2, height/2, 0);
+	rotateX(rotX);
+	rotateY(rotY);
+	scale(zoomF);
+
+	int[] depthMap = context.depthMap();
+	int[] userMap = context.userMap();
+	int steps   = 18;  // to speed up the drawing, draw every third point
+	int index;
+	
+	PVector realWorldPoint;
+
+	translate(0,0,-4000);  // set the rotation center of the scene 1000 infront of the camera
+
+	// draw pointcloud
+	beginShape(POINTS);
+	for(int y=0;y < context.depthHeight();y+=steps) {
+		for(int x=0;x < context.depthWidth();x+=steps) {
+			index = x + y * context.depthWidth();
+			if(depthMap[index] > 0) {
+
+	        	// draw the projected point
+	        	realWorldPoint = context.depthMapRealWorld()[index];
+
+	        	if(userMap[index] != 0) {
+	        		stroke(255);        
+	        		point(realWorldPoint.x,realWorldPoint.y,realWorldPoint.z);
+	        	}
+	        }
+	    } 
+	} 
+
+	endShape();
+
+	// draw the skeleton if it's available
 	int[] userList = context.getUsers();
-	cam = context.userImage();
-	int[] depthValues = context.depthMap();
-	int[] userMap = null;
 
-	for(int i=0; i<userList.length; i++) {
-		if(context.isTrackingSkeleton(userList[i])) {
-			drawSkeleton(userList[i]);
-		}
-	}
+	for(int i=0;i<userList.length;i++) {
 
-}
+	    // draw the center of mass
+	    if(context.getCoM(userList[i],com)) {
+	    	stroke(100,255,0);
+	    	strokeWeight(1);
+	    	beginShape(LINES);
+	    	vertex(com.x - 15,com.y,com.z);
+	    	vertex(com.x + 15,com.y,com.z);
 
-void drawSkeleton(int userId) { 
+	    	vertex(com.x,com.y - 15,com.z);
+	    	vertex(com.x,com.y + 15,com.z);
 
-	ArrayList<BodyParticle> bodyParticles = getBodyParticlesForUser(userId);
-
-	Iterator<BodyParticle> x = bodyParticles.iterator();
-	while(x.hasNext()) {
-
-		BodyParticle particle = x.next();
-		particle.draw();
-
-		// Loop through seeds and check for collison with users body particles
-		for(int i=0; i<seedParticles.size(); i++) {
-
-			if(particle.checkForCollision(seedParticles.get(i))) {
-				seedParticles.remove(i);
-			}
-		}
-	}
-
-
-	// // Draw Head
-	// PVector jointPos = new PVector();
-	// context.getJointPositionSkeleton(userId, SimpleOpenNI.SKEL_HEAD, jointPos);
-	//  // println(jointPos.x);
-	//  // println(jointPos.y);
-
-	// // convert real world point to projective space
-	// PVector jointPos_Proj = new PVector(); 
-	// context.convertRealWorldToProjective(jointPos, jointPos_Proj);
-
-	// // a 200 pixel diameter head
-	// float headsize = 200;
-
-	// // create a distance scalar related to the depth (z dimension)
-	// float distanceScalar = (525/jointPos_Proj.z);
-
-	// // set the fill color to make the circle green
-	// fill(255, 255, 255); 
-
-	// BodyParticle headParticle = new BodyParticle(jointPos_Proj.x,jointPos_Proj.y, distanceScalar*headsize, distanceScalar*headsize);
-	// headParticle.draw();
-
-	// draw all limbs  
-	//  context.drawLimb(userId, SimpleOpenNI.SKEL_HEAD, SimpleOpenNI.SKEL_NECK);
-	// 
-	//  context.drawLimb(userId, SimpleOpenNI.SKEL_NECK, SimpleOpenNI.SKEL_LEFT_SHOULDER);
-	//  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_SHOULDER, SimpleOpenNI.SKEL_LEFT_ELBOW);
-	//  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_ELBOW, SimpleOpenNI.SKEL_LEFT_HAND);
-	// 
-	//  context.drawLimb(userId, SimpleOpenNI.SKEL_NECK, SimpleOpenNI.SKEL_RIGHT_SHOULDER);
-	//  context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_SHOULDER, SimpleOpenNI.SKEL_RIGHT_ELBOW);
-	//  context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_ELBOW, SimpleOpenNI.SKEL_RIGHT_HAND);
-	// 
-	//  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_SHOULDER, SimpleOpenNI.SKEL_TORSO);
-	//  context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_SHOULDER, SimpleOpenNI.SKEL_TORSO);
-	// 
-	//  context.drawLimb(userId, SimpleOpenNI.SKEL_TORSO, SimpleOpenNI.SKEL_LEFT_HIP);
-	//  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_HIP, SimpleOpenNI.SKEL_LEFT_KNEE);
-	//  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_KNEE, SimpleOpenNI.SKEL_LEFT_FOOT);
-	// 
-	//  context.drawLimb(userId, SimpleOpenNI.SKEL_TORSO, SimpleOpenNI.SKEL_RIGHT_HIP);
-	//  context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_HIP, SimpleOpenNI.SKEL_RIGHT_KNEE);
-	//  context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_KNEE, SimpleOpenNI.SKEL_RIGHT_FOOT);  
-}
-
-ArrayList<BodyParticle> getBodyParticlesForUser(int userId) {
-
-	ArrayList<Integer> bodyPartsList = new ArrayList<Integer>();
-	bodyPartsList.add(SimpleOpenNI.SKEL_HEAD);
-	bodyPartsList.add(SimpleOpenNI.SKEL_NECK);
-	bodyPartsList.add(SimpleOpenNI.SKEL_LEFT_SHOULDER);
-	bodyPartsList.add(SimpleOpenNI.SKEL_LEFT_ELBOW);
-	bodyPartsList.add(SimpleOpenNI.SKEL_LEFT_HAND);
-	bodyPartsList.add(SimpleOpenNI.SKEL_RIGHT_SHOULDER);
-	bodyPartsList.add(SimpleOpenNI.SKEL_RIGHT_ELBOW);
-	bodyPartsList.add(SimpleOpenNI.SKEL_RIGHT_HAND);
-	bodyPartsList.add(SimpleOpenNI.SKEL_TORSO);
-	bodyPartsList.add(SimpleOpenNI.SKEL_LEFT_HIP);
-	bodyPartsList.add(SimpleOpenNI.SKEL_LEFT_KNEE);
-	bodyPartsList.add(SimpleOpenNI.SKEL_LEFT_FOOT);
-	bodyPartsList.add(SimpleOpenNI.SKEL_RIGHT_HIP);
-	bodyPartsList.add(SimpleOpenNI.SKEL_RIGHT_KNEE);
-	bodyPartsList.add(SimpleOpenNI.SKEL_RIGHT_FOOT);
-
-	ArrayList<BodyParticle> bodyParticles = new ArrayList<BodyParticle>();
-
-	for(int i=0; i<bodyPartsList.size(); i++) {
-
-		PVector jointPosition = new PVector();
-		context.getJointPositionSkeleton(userId, bodyPartsList.get(i), jointPosition);
-
-		PVector jointPositionProjective = new PVector(); 
-		context.convertRealWorldToProjective(jointPosition, jointPositionProjective);
-
-		float PARTICLE_SIZE = 50;
-
-		// create a distance scalar related to the depth (z dimension)
-		float distanceScalar = (525/jointPositionProjective.z);
-
-		fill(255, 255, 255); 
-
-		BodyParticle bodyParticle = new BodyParticle(jointPositionProjective.x, jointPositionProjective.y, distanceScalar*PARTICLE_SIZE, distanceScalar*PARTICLE_SIZE);
-		bodyParticles.add(bodyParticle);
-
-	}
-
-	return bodyParticles;
+	    	vertex(com.x,com.y,com.z - 15);
+	    	vertex(com.x,com.y,com.z + 15);
+	    	endShape();
+	    }      
+	}    	
 }
 
 void onNewUser(SimpleOpenNI curContext, int userId) {
@@ -218,21 +169,4 @@ void onNewUser(SimpleOpenNI curContext, int userId) {
 
 void onLostUser(SimpleOpenNI curContext, int userId) {
 	println("onLostUser - userId: " + userId);
-}
-
-void setRandomColors(int nthFrame) {
-	if (frameCount % nthFrame == 0) {
-		// turn a palette into a series of strings
-		String[] paletteStrings = split(palettes[int(random(palettes.length))], ",");
-		
-		// turn strings into colors
-		color[] colorPalette = new color[paletteStrings.length];
-		for (int i=0; i < paletteStrings.length; i ++) {
-			colorPalette[i] = int(paletteStrings[i]);
-		}
-	}
-}
-
-void keyPressed() {
-
 }
