@@ -4,6 +4,7 @@ class BodyParticle {
 	private float y;
 	private float width;
 	private float height;
+	private float raidus;
 
 
 	BodyParticle(float x, float y, float width, float height) {

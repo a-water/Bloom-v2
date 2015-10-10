@@ -6,9 +6,9 @@ class SeedParticle {
 	public PVector vector;
 	PShape seedSVG;
 
-	private final int SEED_RADIUS = 8;
-	private final int SEED_SVG_WIDTH = 75;
-	private final int SEED_SVG_HEIGHT = 45;
+	private final int seedRadius = 8;
+	private final int seedSvgWidth = 75;
+	private final int seedSvgHeight = 45;
 
 	SeedParticle() {
 
@@ -31,35 +31,35 @@ class SeedParticle {
 		vector.y = vector.y + speedY;
 
 		// Check Y values for the seed
-		if(vector.y > height-SEED_RADIUS) {
-			vector.y = height-SEED_RADIUS;
+		if(vector.y > height-seedRadius) {
+			vector.y = height-seedRadius;
 			speedY = speedY * -1;
 		}
 
-		if (vector.y < SEED_RADIUS) {
-			vector.y = SEED_RADIUS;
+		if (vector.y < seedRadius) {
+			vector.y = seedRadius;
 			speedY = speedY * -1;
 		}
 
 		// Check X values for the seed
-		if(vector.x > width-SEED_RADIUS) {
-			vector.x = width-SEED_RADIUS;
+		if(vector.x > width-seedRadius) {
+			vector.x = width-seedRadius;
 			speedX = speedX * -1;
 		}
 
-		if (vector.x < SEED_RADIUS) {
-			vector.x = SEED_RADIUS;
+		if (vector.x < seedRadius) {
+			vector.x = seedRadius;
 			speedX = speedX * -1;
 		}
 	}
 
 	public void draw() {
-		shape(seedSVG, vector.x, vector.y, SEED_SVG_WIDTH/2.5, SEED_SVG_HEIGHT/2.5);
+		shape(seedSVG, vector.x, vector.y, seedSvgWidth/2.5, seedSvgHeight/2.5);
 	} 
 
 	public void checkForCollision(SeedParticle seed) {
 
-		if(dist(seed.vector.x, seed.vector.y, vector.x, vector.y) < SEED_RADIUS * 2) {
+		if(dist(seed.vector.x, seed.vector.y, vector.x, vector.y) < seedRadius * 2) {
 			speedX *= -1;
 			speedY *= -1;
 			// println("COLLISION DETECTED!");  
@@ -67,6 +67,6 @@ class SeedParticle {
 	}
 
 	public int getSeedRadius() {
-		return SEED_RADIUS;
+		return seedRadius;
 	}
 }
