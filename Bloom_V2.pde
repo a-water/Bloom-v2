@@ -10,10 +10,11 @@ float rotY = radians(0);
 boolean autoCalib = true;
 PVector com = new PVector();  
 
+int steps = 12;  // to speed up the drawing, draw every third point
+
 
 // seeds
-ArrayList <SeedParticle> seedParticles;
-int NUM_INITIAL_SEEDS = 30;
+int numInitialSeeds = 30;
 
 // environment 
 color darkPurpleCol = color(20, 20, 29);
@@ -57,7 +58,7 @@ void setup() {
 
 	// init seed particles
 	// seedParticles = new ArrayList<SeedParticle>();
-	// for(int i=0; i<NUM_INITIAL_SEEDS; i++) {
+	// for(int i=0; i<numInitialSeeds; i++) {
 	// 	seedParticles.add(new SeedParticle());
 	// }
 
@@ -110,15 +111,14 @@ void draw() {
 
 	int[] depthMap = context.depthMap();
 	int[] userMap = context.userMap();
-	int steps   = 18;  // to speed up the drawing, draw every third point
 	int index;
 	
 	PVector realWorldPoint;
 
-	translate(0,0,-4000);  // set the rotation center of the scene 1000 infront of the camera
+	// EDIT 3rd PARAM TO ADJUST KINECT DEPTH, the more negative the #, the further away it will capture
+	translate(0,0,-1500);  // set the rotation center of the scene 1000 infront of the camera
 
 	// draw pointcloud
-	beginShape(POINTS);
 	for(int y=0;y < context.depthHeight();y+=steps) {
 		for(int x=0;x < context.depthWidth();x+=steps) {
 			index = x + y * context.depthWidth();
@@ -128,36 +128,18 @@ void draw() {
 	        	realWorldPoint = context.depthMapRealWorld()[index];
 
 	        	if(userMap[index] != 0) {
-	        		stroke(255);        
-	        		point(realWorldPoint.x,realWorldPoint.y,realWorldPoint.z);
+	        		noStroke();
+	        		fill(95, 253, random(200, 255));        
+	        		pushMatrix();
+	        		translate(realWorldPoint.x, realWorldPoint.y, realWorldPoint.z);
+	        		float ellipseSize = random(5, 15);
+	        		ellipse(realWorldPoint.x, realWorldPoint.y, ellipseSize, ellipseSize);
+	        		popMatrix();
 	        	}
 	        }
 	    } 
 	} 
 
-	endShape();
-
-	// draw the skeleton if it's available
-	int[] userList = context.getUsers();
-
-	for(int i=0;i<userList.length;i++) {
-
-	    // draw the center of mass
-	    if(context.getCoM(userList[i],com)) {
-	    	stroke(100,255,0);
-	    	strokeWeight(1);
-	    	beginShape(LINES);
-	    	vertex(com.x - 15,com.y,com.z);
-	    	vertex(com.x + 15,com.y,com.z);
-
-	    	vertex(com.x,com.y - 15,com.z);
-	    	vertex(com.x,com.y + 15,com.z);
-
-	    	vertex(com.x,com.y,com.z - 15);
-	    	vertex(com.x,com.y,com.z + 15);
-	    	endShape();
-	    }      
-	}    	
 }
 
 void onNewUser(SimpleOpenNI curContext, int userId) {
