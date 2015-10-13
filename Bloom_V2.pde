@@ -4,28 +4,37 @@ import java.util.Iterator;
 
 // kinect 
 SimpleOpenNI context;
-float zoomF = 0.25f;
+float zoomF = 0.1f;
 float rotX = radians(180); 
 float rotY = radians(0);
 boolean autoCalib = true;
 PVector com = new PVector();  
-
-int steps = 12;  // to speed up the drawing, draw every third point
-
+int steps = 18;  // to speed up the drawing, draw every third point
 
 // seeds
-int numInitialSeeds = 30;
+int numInitialSeeds = 5;
+ArrayList<SeedParticle> seedParticles;
 
 // environment 
 color darkPurpleCol = color(20, 20, 29);
 color magentaCol = color(231, 68, 152);
 color cyanCol = color(95, 253, 255);
 
+color[] colors = new color[] {
+	color(random(255), random(255), random(255)),
+	color(231, 68, 152),
+	color(95, 253, random(200, 255))
+};
+
+color currentColor = colors[2];
+color currentLineColor = colors[1];
+
 // background agents
 int agentCount = 1000;
 int currentCount = 1;
 
 Agent[] agents = new Agent[10000];
+ArrayList<Agent> userAgents = new ArrayList<Agent>();
 
 float noiseScale = 100;
 float noiseStrength = 10.0;
@@ -34,9 +43,12 @@ float overlayAlpha = 20;
 float agentsAlpha = 120;
 float strokeWidth = 0.5;
 
+// body particles
+ArrayList<BodyParticle> bodyParticles = new ArrayList<BodyParticle>();
+
 
 void setup() {
-	size(displayWidth/2, displayHeight/2, P3D);
+	size(displayWidth, displayHeight, P3D);
 	smooth();
 
 	// init kinect
@@ -57,16 +69,16 @@ void setup() {
 	}
 
 	// init seed particles
-	// seedParticles = new ArrayList<SeedParticle>();
-	// for(int i=0; i<numInitialSeeds; i++) {
-	// 	seedParticles.add(new SeedParticle());
-	// }
+	seedParticles = new ArrayList<SeedParticle>();
+	for(int i=0; i<numInitialSeeds; i++) {
+		seedParticles.add(new SeedParticle());
+	}
 
-	perspective(radians(45), float(width)/float(height), 10,1500);
+	perspective(radians(45), float(width)/float(height), 10, 1500);
 }
 
 void draw() {
-	fill(darkPurpleCol, 190);
+	fill(darkPurpleCol, 100);
 	noStroke();
 	rect(0, 0, width, height);
 
@@ -82,15 +94,15 @@ void draw() {
 	}
 
 	// update seeds, check for collisions
-	// for(int i=0; i<seedParticles.size(); i++) {
-	// 	seedParticles.get(i).update();
-	// 	for(int x=0; x<seedParticles.size(); x++) {
-	// 		if(i != x) {
-	// 			seedParticles.get(i).checkForCollision(seedParticles.get(x)); 
-	// 		}
-	// 	}
-	// 	seedParticles.get(i).draw();
-	// }
+	for(int i=0; i<seedParticles.size(); i++) {
+		seedParticles.get(i).update();
+		for(int x=0; x<seedParticles.size(); x++) {
+			if(i != x) {
+				seedParticles.get(i).checkForCollision(seedParticles.get(x)); 
+			}
+		}
+		seedParticles.get(i).draw();
+	}
 
 	// update kinect
 	context.update();
@@ -98,9 +110,7 @@ void draw() {
 	// get list of users, draw skeletons
 	// int[] userList = context.getUsers();
 	// for(int i=0; i<userList.length; i++) {
-	// 	if(context.isTrackingSkeleton(userList[i])) {
-	// 		drawSkeleton(userList[i]);
-	// 	}
+	// 	println("USER: " + userList[i]);
 	// }
 
 	// set the scene pos
@@ -116,30 +126,113 @@ void draw() {
 	PVector realWorldPoint;
 
 	// EDIT 3rd PARAM TO ADJUST KINECT DEPTH, the more negative the #, the further away it will capture
-	translate(0,0,-1500);  // set the rotation center of the scene 1000 infront of the camera
+	translate(0, 0, -3500);  // set the rotation center of the scene 1000 infront of the camera
+
+
+	setParticleColors();
+
+	int lineCount = 0;
+	ArrayList<Float> linePoints = new ArrayList<Float>();
 
 	// draw pointcloud
-	for(int y=0;y < context.depthHeight();y+=steps) {
-		for(int x=0;x < context.depthWidth();x+=steps) {
+	for(int y=0;y < context.depthHeight(); y+=steps) {
+		for(int x=0;x < context.depthWidth(); x+=steps) {
 			index = x + y * context.depthWidth();
 			if(depthMap[index] > 0) {
 
 	        	// draw the projected point
 	        	realWorldPoint = context.depthMapRealWorld()[index];
 
+	        	pushMatrix();
+	        	translate(realWorldPoint.x, realWorldPoint.y, realWorldPoint.z);
+
 	        	if(userMap[index] != 0) {
-	        		noStroke();
-	        		fill(95, 253, random(200, 255));        
-	        		pushMatrix();
-	        		translate(realWorldPoint.x, realWorldPoint.y, realWorldPoint.z);
-	        		float ellipseSize = random(5, 15);
-	        		ellipse(realWorldPoint.x, realWorldPoint.y, ellipseSize, ellipseSize);
-	        		popMatrix();
+
+	        		if(random(1) > 0.5) {
+
+	        			BodyParticle bp = new BodyParticle(realWorldPoint.x, realWorldPoint.y, realWorldPoint.z, currentColor);
+
+	        			int rando = (int)random(1, 30);
+	        			if(rando == 5) {
+	        				bodyParticles.add(bp);
+	        			} else {
+	        				bp.draw();
+	        			}
+	        		}
+
+	        		// if(random(1) > 0.3) {
+	        		// 	linePoints.add(realWorldPoint.x);
+	        		// 	linePoints.add(realWorldPoint.y);
+	        		// 	lineCount++;
+	        		// }
+
+	        		// if(lineCount == 4) {
+	        		// 	stroke(currentLineColor);
+	        		// 	strokeWeight(2);
+	        		// 	// line(linePoints.get(0), linePoints.get(1), linePoints.get(2), linePoints.get(3));
+	        		// 	quad(linePoints.get(0), linePoints.get(1), linePoints.get(2), linePoints.get(3), linePoints.get(4), linePoints.get(5), linePoints.get(6), linePoints.get(7));
+	        		// 	// reset line count and line arraylist
+	        		// 	lineCount = 0;
+	        		// 	linePoints.clear();
+	        		// }
+
+	        		// for(int i=0; i<seedParticles.size(); i++) {	        			 
+	        		// 	if(bodyParticle.checkForCollision(seedParticles.get(i))) {
+	        		// 		seedParticles.remove(i);
+	        		// 	}
+
+	        		// }
+	        		// userAgents.add(new Agent(realWorldPoint.x, realWorldPoint.y, realWorldPoint.z));
 	        	}
+
+	        	popMatrix();
 	        }
 	    } 
-	} 
+	}	
 
+	PVector gravity = new PVector(0, 0.1 * 10);
+	BodyParticle bp;
+
+	if(bodyParticles.size() > 1){
+		for(int i=0; i<bodyParticles.size(); i++) {
+
+			bp = bodyParticles.get(i);
+			bp.applyForce(gravity);
+			bp.update();
+			bp.draw();
+
+			if(bp.isDead) {
+				bodyParticles.remove(i);
+			}
+
+		}
+	}
+
+	
+	// stroke(currentColor, agentsAlpha);
+	// fill(255);
+	// pushMatrix();
+	// translate(0, 0, 1500);
+	// popMatrix();
+	// ellipse(width/2, height/2, 200, 200);
+
+	// for(int i=0; i<userAgents.size(); i++) {
+
+	// 	pushMatrix();
+	// 	translate(userAgents.get(i).p.x, userAgents.get(i).p.y, userAgents.get(i).zLoc);
+	// 	userAgents.get(i).updateAgent();
+	// 	popMatrix();
+
+	// 	if(userAgents.get(i).isDead) {
+	// 		userAgents.remove(i);
+	// 	}
+	// } 
+}
+
+void setParticleColors() {
+	if(frameCount % 60 == 0) {
+		currentColor = colors[(int)random(0, 2)];
+	}
 }
 
 void onNewUser(SimpleOpenNI curContext, int userId) {

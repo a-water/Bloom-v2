@@ -2,6 +2,7 @@ class Agent {
 
 	PVector p;
 	PVector pOld;
+	float zLoc;
 
 	float noiseZ = 0.01;
 	float noiseZVelocity = 0.01;
@@ -9,12 +10,13 @@ class Agent {
 	float stepSize;
 	float angle;
 
+	boolean isDead = false;
 
 	Agent() {
 		p = new PVector(random(width), random(height));
 		pOld = new PVector(p.x, p.y);
 
-		stepSize = random(1, 5);
+		stepSize = random(1, 2);
 		setNoiseZRange(0.4);
 	}
 
@@ -45,7 +47,6 @@ class Agent {
     	line(pOld.x, pOld.y, p.x, p.y);
 
     	point(p.x, p.y);
-    	
 
     	pOld.set(p);
     	noiseZ += noiseZVelocity;

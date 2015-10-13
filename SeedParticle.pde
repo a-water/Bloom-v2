@@ -7,8 +7,8 @@ class SeedParticle {
 	PShape seedSVG;
 
 	private final int seedRadius = 8;
-	private final int seedSvgWidth = 75;
-	private final int seedSvgHeight = 45;
+	private final int seedSvgWidth = 50;
+	private final int seedSvgHeight = 30;
 
 	SeedParticle() {
 
@@ -23,7 +23,6 @@ class SeedParticle {
 		translate(vector.x, vector.y);
 		seedSVG.rotate(radians(rotation));
 		popMatrix();
-
 	}
 
 	public void update() {
