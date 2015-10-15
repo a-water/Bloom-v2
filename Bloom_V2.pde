@@ -2,6 +2,8 @@ import SimpleOpenNI.*;
 import processing.opengl.*;
 import java.util.Iterator;
 
+PImage img;
+
 // kinect 
 SimpleOpenNI context;
 float zoomF = 0.1f;
@@ -12,13 +14,14 @@ PVector com = new PVector();
 int steps = 18;  // to speed up the drawing, draw every third point
 
 // seeds
-int numInitialSeeds = 5;
+int numInitialSeeds = 20;
 ArrayList<SeedParticle> seedParticles;
 
 // environment 
 color darkPurpleCol = color(20, 20, 29);
 color magentaCol = color(231, 68, 152);
 color cyanCol = color(95, 253, 255);
+color seedCol = color(3, 255, 180);
 
 color[] colors = new color[] {
 	color(random(255), random(255), random(255)),
@@ -48,8 +51,12 @@ ArrayList<BodyParticle> bodyParticles = new ArrayList<BodyParticle>();
 
 
 void setup() {
-	size(displayWidth, displayHeight, P3D);
+
+	size(1280, 800, P3D);
 	smooth();
+
+	// load texture 
+	img = loadImage("texture.png");
 
 	// init kinect
 	context = new SimpleOpenNI(this);
@@ -94,6 +101,7 @@ void draw() {
 	}
 
 	// update seeds, check for collisions
+	fill(seedCol);
 	for(int i=0; i<seedParticles.size(); i++) {
 		seedParticles.get(i).update();
 		for(int x=0; x<seedParticles.size(); x++) {
@@ -123,8 +131,6 @@ void draw() {
 	int[] userMap = context.userMap();
 	int index;
 	
-	PVector realWorldPoint;
-
 	// EDIT 3rd PARAM TO ADJUST KINECT DEPTH, the more negative the #, the further away it will capture
 	translate(0, 0, -3500);  // set the rotation center of the scene 1000 infront of the camera
 
@@ -132,6 +138,8 @@ void draw() {
 	setParticleColors();
 
 	int lineCount = 0;
+	PVector realWorldPoint;
+
 	ArrayList<Float> linePoints = new ArrayList<Float>();
 
 	// draw pointcloud
@@ -190,43 +198,25 @@ void draw() {
 	    } 
 	}	
 
-	PVector gravity = new PVector(0, 0.1 * 10);
-	BodyParticle bp;
 
-	if(bodyParticles.size() > 1){
-		for(int i=0; i<bodyParticles.size(); i++) {
+	beginShape(TRIANGLES);
+	stroke(255);
+	strokeWeight(2.0);
+	Iterator<BodyParticle> it = bodyParticles.iterator();
+	while(it.hasNext()) {
 
-			bp = bodyParticles.get(i);
-			bp.applyForce(gravity);
-			bp.update();
-			bp.draw();
+		BodyParticle bp = it.next();
+		PVector gravity = new PVector(0, 0.1 * bp.radius);
+		bp.applyForce(gravity);
+		bp.update();
+		bp.draw();
 
-			if(bp.isDead) {
-				bodyParticles.remove(i);
-			}
-
+		if(bp.isDead) {
+			it.remove();
 		}
 	}
+	endShape();
 
-	
-	// stroke(currentColor, agentsAlpha);
-	// fill(255);
-	// pushMatrix();
-	// translate(0, 0, 1500);
-	// popMatrix();
-	// ellipse(width/2, height/2, 200, 200);
-
-	// for(int i=0; i<userAgents.size(); i++) {
-
-	// 	pushMatrix();
-	// 	translate(userAgents.get(i).p.x, userAgents.get(i).p.y, userAgents.get(i).zLoc);
-	// 	userAgents.get(i).updateAgent();
-	// 	popMatrix();
-
-	// 	if(userAgents.get(i).isDead) {
-	// 		userAgents.remove(i);
-	// 	}
-	// } 
 }
 
 void setParticleColors() {

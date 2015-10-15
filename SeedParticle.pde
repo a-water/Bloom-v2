@@ -1,59 +1,44 @@
 class SeedParticle {
 
-	private int speedX;
-	private int speedY;
+	private float speedX;
+	private float speedY;
 	private float rotation;
 	public PVector vector;
 	PShape seedSVG;
 
-	private final int seedRadius = 8;
-	private final int seedSvgWidth = 50;
-	private final int seedSvgHeight = 30;
+	private final int seedRadius = 4;
 
 	SeedParticle() {
 
 		vector = new PVector(random(width), random(height));
-		speedX = (int)random(1, 2);
-		speedY = (int)random(1, 2);
-		rotation = random(0, 360);
-
-		// Load svg and rotate it
-		seedSVG = loadShape("seed_01.svg");
-		pushMatrix();
-		translate(vector.x, vector.y);
-		seedSVG.rotate(radians(rotation));
-		popMatrix();
+		speedX = random(2);
+		speedY = random(2);
 	}
 
 	public void update() {
-		vector.x = vector.x + speedX;
-		vector.y = vector.y + speedY;
+		vector.x += speedX;
+		vector.y += speedY;
 
 		// Check Y values for the seed
-		if(vector.y > height-seedRadius) {
-			vector.y = height-seedRadius;
-			speedY = speedY * -1;
-		}
-
-		if (vector.y < seedRadius) {
+		if(vector.y > height - seedRadius) {
 			vector.y = seedRadius;
-			speedY = speedY * -1;
+		} else if (vector.y < seedRadius) {
+			vector.y = height;
 		}
 
 		// Check X values for the seed
 		if(vector.x > width-seedRadius) {
-			vector.x = width-seedRadius;
-			speedX = speedX * -1;
-		}
-
-		if (vector.x < seedRadius) {
 			vector.x = seedRadius;
-			speedX = speedX * -1;
+		} else if (vector.x < seedRadius) {
+			vector.x = width;
 		}
 	}
 
 	public void draw() {
-		shape(seedSVG, vector.x, vector.y, seedSvgWidth/2.5, seedSvgHeight/2.5);
+		// shape(seedSVG, vector.x, vector.y, seedSvgWidth/2.5, seedSvgHeight/2.5);
+		// imageMode(CENTER);
+		// image(img, vector.x, vector.y);
+		ellipse(vector.x, vector.y, seedRadius, seedRadius);
 	} 
 
 	public void checkForCollision(SeedParticle seed) {

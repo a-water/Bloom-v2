@@ -11,6 +11,7 @@ class BodyParticle {
 	float radius;
 	private color currentColor;
 
+	int lives = 40;
 	boolean isDead = false;
 
 	BodyParticle(float x, float y, float z, color currentColor) {
@@ -24,7 +25,8 @@ class BodyParticle {
 		acceleration = new PVector(0, 0);
 
 		this.currentColor = currentColor;
-		this.radius = random(10, 20);
+		// this.radius = random(10, 20);
+		this.radius = 20;
 
 	}
 
@@ -45,10 +47,11 @@ class BodyParticle {
 	    fill(currentColor);       
 	    // pushMatrix();
 	    // translate(x, y, z);
-
-	    if(location.y > height - radius*2) {
+	    lives--;
+	    if(lives == 0) {
 	    	isDead = true;
 	    } else {
+	    	point(location.x, location.y);
 	    	ellipse(location.x, location.y, radius, radius);
 	    }
 	    // popMatrix();
