@@ -11,8 +11,8 @@ class SeedParticle {
 	SeedParticle() {
 
 		vector = new PVector(random(width), random(height));
-		speedX = random(2);
-		speedY = random(2);
+		speedX = random(-1, 1);
+		speedY = random(-1, 1);
 	}
 
 	public void update() {
@@ -41,13 +41,16 @@ class SeedParticle {
 		ellipse(vector.x, vector.y, seedRadius, seedRadius);
 	} 
 
-	public void checkForCollision(SeedParticle seed) {
+	public boolean checkForCollision(SeedParticle seed) {
 
-		if(dist(seed.vector.x, seed.vector.y, vector.x, vector.y) < seedRadius * 2) {
+		if(dist(seed.vector.x, seed.vector.y, vector.x, vector.y) < seedRadius) {
 			speedX *= -1;
 			speedY *= -1;
+			return true;
 			// println("COLLISION DETECTED!");  
 		}
+
+		return false;
 	}
 
 	public int getSeedRadius() {

@@ -16,6 +16,7 @@ int steps = 18;  // to speed up the drawing, draw every third point
 // seeds
 int numInitialSeeds = 20;
 ArrayList<SeedParticle> seedParticles;
+int seedRetryCount = 0;
 
 // environment 
 color darkPurpleCol = color(20, 20, 29);
@@ -77,9 +78,7 @@ void setup() {
 
 	// init seed particles
 	seedParticles = new ArrayList<SeedParticle>();
-	for(int i=0; i<numInitialSeeds; i++) {
-		seedParticles.add(new SeedParticle());
-	}
+	createSeedParticles();
 
 	perspective(radians(45), float(width)/float(height), 10, 1500);
 }
@@ -217,6 +216,28 @@ void draw() {
 	}
 	endShape();
 
+}
+
+void createSeedParticles() {
+
+	for(int i=0; i<numInitialSeeds; i++) {
+		seedParticles.add(new SeedParticle());
+	}
+
+	for(int i=0; i<seedParticles.size(); i++) {
+		for(int x=0; x<seedParticles.size(); x++) {
+			if(i != x) {
+				if(seedParticles.get(i).checkForCollision(seedParticles.get(x))) {
+					if(seedRetryCount == 100) {
+						exit();
+					}
+					seedParticles.clear();
+					createSeedParticles();
+				} 
+			}
+		}
+		seedRetryCount++;
+	}
 }
 
 void setParticleColors() {
