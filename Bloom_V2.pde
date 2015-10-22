@@ -2,62 +2,42 @@ import SimpleOpenNI.*;
 import processing.opengl.*;
 import java.util.Iterator;
 
-PImage img;
-
 // kinect 
 SimpleOpenNI context;
-float zoomF = 0.1f;
+float zoomF = 0.15f;
 float rotX = radians(180); 
-float rotY = radians(0);
-boolean autoCalib = true;
-PVector com = new PVector();  
-int steps = 18;  // to speed up the drawing, draw every third point
-
-// seeds
-int numInitialSeeds = 20;
-ArrayList<SeedParticle> seedParticles;
-int seedRetryCount = 0;
+float rotY = radians(0); 
+int steps = 18;
 
 // environment 
-color darkPurpleCol = color(20, 20, 29);
-color magentaCol = color(231, 68, 152);
-color cyanCol = color(95, 253, 255);
-color seedCol = color(3, 255, 180);
-
+// color darkPurpleCol = color(20, 20, 29);
+color darkPurpleCol = color(0, 0, 0);
 color[] colors = new color[] {
-	color(random(255), random(255), random(255)),
-	color(231, 68, 152),
-	color(95, 253, random(200, 255))
+	color(41, 255, 244),
+	color(118, 245, 158),
+	color(140, 200, 255),
+	color(236, 168, 255)
 };
 
-color currentColor = colors[2];
-color currentLineColor = colors[1];
+HashMap<Integer, Integer> userColorMap;
 
-// background agents
-int agentCount = 1000;
-int currentCount = 1;
+ArrayList<Agent> userAgents;
+final int maxUserAgents = 2000;
 
-Agent[] agents = new Agent[10000];
-ArrayList<Agent> userAgents = new ArrayList<Agent>();
-
-float noiseScale = 100;
-float noiseStrength = 10.0;
-float noiseZRange = 0.4;
+float noiseScale = 230;
+float noiseStrength = 15.0;
+float noiseZRange = 10.8;
 float overlayAlpha = 20;
-float agentsAlpha = 120;
-float strokeWidth = 0.5;
+float agentsAlpha = 125; 
+float strokeWidth = 1.0;
 
 // body particles
-ArrayList<BodyParticle> bodyParticles = new ArrayList<BodyParticle>();
-
+ArrayList<BodyParticle> bodyParticles;
 
 void setup() {
-
-	size(1280, 800, P3D);
+	size(displayWidth, displayHeight, P3D);
 	smooth();
-
-	// load texture 
-	img = loadImage("texture.png");
+        noCursor();
 
 	// init kinect
 	context = new SimpleOpenNI(this);
@@ -72,43 +52,26 @@ void setup() {
 	context.enableUser(); // enable skeleton generation for all joints
 
 	// init agents
-	for(int i = 0; i < agents.length; i++) {
-		agents[i] = new Agent();
-	}
+	userAgents = new ArrayList<Agent>();
 
-	// init seed particles
-	seedParticles = new ArrayList<SeedParticle>();
-	createSeedParticles();
+	// init user colors
+	userColorMap = new HashMap<Integer, Integer>();	
 
-	perspective(radians(45), float(width)/float(height), 10, 1500);
+	// init body particles
+	bodyParticles = new ArrayList<BodyParticle>();
 }
 
 void draw() {
-	fill(darkPurpleCol, 100);
+	fill(darkPurpleCol, overlayAlpha);
 	noStroke();
 	rect(0, 0, width, height);
 
 	// debug
 	frame.setTitle(str((int)frameRate));
-	//  context.drawCamFrustum();
-	// image(context.userImage(),0,0);
 
 	// draw agents
-	stroke(cyanCol, agentsAlpha);
-	for(int i = 0; i < agentCount; i++) {
-		agents[i].updateAgent();
-	}
-
-	// update seeds, check for collisions
-	fill(seedCol);
-	for(int i=0; i<seedParticles.size(); i++) {
-		seedParticles.get(i).update();
-		for(int x=0; x<seedParticles.size(); x++) {
-			if(i != x) {
-				seedParticles.get(i).checkForCollision(seedParticles.get(x)); 
-			}
-		}
-		seedParticles.get(i).draw();
+	for(int i = 0; i < userAgents.size(); i++) {
+		userAgents.get(i).updateAgent();
 	}
 
 	// update kinect
@@ -133,13 +96,9 @@ void draw() {
 	// EDIT 3rd PARAM TO ADJUST KINECT DEPTH, the more negative the #, the further away it will capture
 	translate(0, 0, -3500);  // set the rotation center of the scene 1000 infront of the camera
 
-
-	setParticleColors();
-
-	int lineCount = 0;
 	PVector realWorldPoint;
 
-	ArrayList<Float> linePoints = new ArrayList<Float>();
+	perspective(radians(45), float(width)/float(height), 10, 1500);
 
 	// draw pointcloud
 	for(int y=0;y < context.depthHeight(); y+=steps) {
@@ -154,105 +113,34 @@ void draw() {
 	        	translate(realWorldPoint.x, realWorldPoint.y, realWorldPoint.z);
 
 	        	if(userMap[index] != 0) {
-
-	        		if(random(1) > 0.5) {
-
-	        			BodyParticle bp = new BodyParticle(realWorldPoint.x, realWorldPoint.y, realWorldPoint.z, currentColor);
-
-	        			int rando = (int)random(1, 30);
-	        			if(rando == 5) {
-	        				bodyParticles.add(bp);
-	        			} else {
-	        				bp.draw();
-	        			}
-	        		}
-
-	        		// if(random(1) > 0.3) {
-	        		// 	linePoints.add(realWorldPoint.x);
-	        		// 	linePoints.add(realWorldPoint.y);
-	        		// 	lineCount++;
-	        		// }
-
-	        		// if(lineCount == 4) {
-	        		// 	stroke(currentLineColor);
-	        		// 	strokeWeight(2);
-	        		// 	// line(linePoints.get(0), linePoints.get(1), linePoints.get(2), linePoints.get(3));
-	        		// 	quad(linePoints.get(0), linePoints.get(1), linePoints.get(2), linePoints.get(3), linePoints.get(4), linePoints.get(5), linePoints.get(6), linePoints.get(7));
-	        		// 	// reset line count and line arraylist
-	        		// 	lineCount = 0;
-	        		// 	linePoints.clear();
-	        		// }
-
-	        		// for(int i=0; i<seedParticles.size(); i++) {	        			 
-	        		// 	if(bodyParticle.checkForCollision(seedParticles.get(i))) {
-	        		// 		seedParticles.remove(i);
-	        		// 	}
-
-	        		// }
-	        		// userAgents.add(new Agent(realWorldPoint.x, realWorldPoint.y, realWorldPoint.z));
+	        		new BodyParticle(realWorldPoint.x, realWorldPoint.y, userColorMap.get(userMap[index])).draw();
 	        	}
-
 	        	popMatrix();
 	        }
 	    } 
 	}	
-
-
-	beginShape(TRIANGLES);
-	stroke(255);
-	strokeWeight(2.0);
-	Iterator<BodyParticle> it = bodyParticles.iterator();
-	while(it.hasNext()) {
-
-		BodyParticle bp = it.next();
-		PVector gravity = new PVector(0, 0.1 * bp.radius);
-		bp.applyForce(gravity);
-		bp.update();
-		bp.draw();
-
-		if(bp.isDead) {
-			it.remove();
-		}
-	}
-	endShape();
-
-}
-
-void createSeedParticles() {
-
-	for(int i=0; i<numInitialSeeds; i++) {
-		seedParticles.add(new SeedParticle());
-	}
-
-	for(int i=0; i<seedParticles.size(); i++) {
-		for(int x=0; x<seedParticles.size(); x++) {
-			if(i != x) {
-				if(seedParticles.get(i).checkForCollision(seedParticles.get(x))) {
-					if(seedRetryCount == 100) {
-						exit();
-					}
-					seedParticles.clear();
-					createSeedParticles();
-				} 
-			}
-		}
-		seedRetryCount++;
-	}
-}
-
-void setParticleColors() {
-	if(frameCount % 60 == 0) {
-		currentColor = colors[(int)random(0, 2)];
-	}
 }
 
 void onNewUser(SimpleOpenNI curContext, int userId) {
 	println("onNewUser - userId: " + userId);
 	println("\tstart tracking skeleton");
 
-	curContext.startTrackingSkeleton(userId);
+	color userColor = colors[(int)random(0, colors.length)];
+	userColorMap.put(userId, userColor);
+
+	// add agents to userAgents
+	int agentsPerUser = 1000;
+	if(userAgents.size() >= maxUserAgents) {
+		userAgents.subList(0, agentsPerUser).clear();
+	}
+
+	for(int i = 0; i < agentsPerUser; i++) {
+		userAgents.add(new Agent(userColor));
+	}
 }
 
 void onLostUser(SimpleOpenNI curContext, int userId) {
 	println("onLostUser - userId: " + userId);
+
+	userColorMap.remove(userId);
 }

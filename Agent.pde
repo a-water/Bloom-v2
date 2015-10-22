@@ -4,7 +4,7 @@ class Agent {
 	PVector pOld;
 	float zLoc;
 
-	float noiseZ = 0.01;
+	float noiseZ = 0.001;
 	float noiseZVelocity = 0.01;
 
 	float stepSize;
@@ -12,12 +12,16 @@ class Agent {
 
 	boolean isDead = false;
 
-	Agent() {
+	color agentColor;
+
+	Agent(color agentColor) {
 		p = new PVector(random(width), random(height));
 		pOld = new PVector(p.x, p.y);
 
-		stepSize = random(1, 2);
+		stepSize = random(1, 5);
 		setNoiseZRange(0.4);
+
+		this.agentColor = agentColor;
 	}
 
 	void updateAgent() {
@@ -43,6 +47,7 @@ class Agent {
     		p.y = pOld.y = -10;
     	} 
 
+    	stroke(agentColor, agentsAlpha);
     	strokeWeight(strokeWidth * stepSize);
     	line(pOld.x, pOld.y, p.x, p.y);
 
