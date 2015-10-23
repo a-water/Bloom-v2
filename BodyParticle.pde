@@ -20,13 +20,11 @@ class BodyParticle {
 	}
 
 	public void draw() {
-		noStroke();
-	    fill(particleColor, random(100, 200));
-
-	    beginShape(TRIANGLES);    
-		vertex(location.x, location.y, radius, radius);
-		vertex(location.x + random(-120, 120), location.y + random(-120, 120));
-		vertex(location.x + random(-120, 120), location.y + random(-120, 120));
+		float randomPoint = random(-70, 70);
+	    stroke(particleColor);
+	    beginShape(LINES);
+		vertex(location.x, location.y);
+		vertex(location.x + randomPoint, location.y + randomPoint);
 		endShape();
 	} 
 }

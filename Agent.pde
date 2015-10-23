@@ -5,7 +5,7 @@ class Agent {
 	float zLoc;
 
 	float noiseZ = 0.001;
-	float noiseZVelocity = 0.01;
+	float noiseZVelocity = 0.001;
 
 	float stepSize;
 	float angle;

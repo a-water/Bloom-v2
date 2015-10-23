@@ -7,7 +7,7 @@ SimpleOpenNI context;
 float zoomF = 0.15f;
 float rotX = radians(180); 
 float rotY = radians(0); 
-int steps = 18;
+int steps = 36;
 
 // environment 
 // color darkPurpleCol = color(20, 20, 29);
@@ -22,20 +22,20 @@ color[] colors = new color[] {
 HashMap<Integer, Integer> userColorMap;
 
 ArrayList<Agent> userAgents;
-final int maxUserAgents = 2000;
+final int maxUserAgents = 1000;
 
 float noiseScale = 230;
 float noiseStrength = 15.0;
 float noiseZRange = 10.8;
 float overlayAlpha = 20;
-float agentsAlpha = 125; 
+float agentsAlpha = 230; 
 float strokeWidth = 1.0;
 
 // body particles
 ArrayList<BodyParticle> bodyParticles;
 
 void setup() {
-	size(displayWidth, displayHeight, P3D);
+	size(displayWidth, displayHeight, OPENGL);
 	smooth();
         noCursor();
 
@@ -74,14 +74,14 @@ void draw() {
 		userAgents.get(i).updateAgent();
 	}
 
-	// update kinect
-	context.update();
-
 	// get list of users, draw skeletons
 	// int[] userList = context.getUsers();
 	// for(int i=0; i<userList.length; i++) {
 	// 	println("USER: " + userList[i]);
 	// }
+
+	// update kinect
+	context.update();
 
 	// set the scene pos
 	translate(width/2, height/2, 0);
@@ -100,25 +100,22 @@ void draw() {
 
 	perspective(radians(45), float(width)/float(height), 10, 1500);
 
-	// draw pointcloud
-	for(int y=0;y < context.depthHeight(); y+=steps) {
-		for(int x=0;x < context.depthWidth(); x+=steps) {
+	//draw pointcloud
+	for(int y=0; y < context.depthHeight(); y+=steps) {
+		for(int x=0; x < context.depthWidth(); x+=steps) {
 			index = x + y * context.depthWidth();
 			if(depthMap[index] > 0) {
 
 	        	// draw the projected point
 	        	realWorldPoint = context.depthMapRealWorld()[index];
 
-	        	pushMatrix();
-	        	translate(realWorldPoint.x, realWorldPoint.y, realWorldPoint.z);
-
 	        	if(userMap[index] != 0) {
+	        		strokeWeight(random(30));
 	        		new BodyParticle(realWorldPoint.x, realWorldPoint.y, userColorMap.get(userMap[index])).draw();
 	        	}
-	        	popMatrix();
 	        }
 	    } 
-	}	
+	}
 }
 
 void onNewUser(SimpleOpenNI curContext, int userId) {
@@ -129,7 +126,7 @@ void onNewUser(SimpleOpenNI curContext, int userId) {
 	userColorMap.put(userId, userColor);
 
 	// add agents to userAgents
-	int agentsPerUser = 1000;
+	int agentsPerUser = 100;
 	if(userAgents.size() >= maxUserAgents) {
 		userAgents.subList(0, agentsPerUser).clear();
 	}
